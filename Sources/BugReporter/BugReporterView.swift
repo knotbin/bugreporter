@@ -48,7 +48,12 @@ func createGitHubIssue(owner: String, repo: String, title: String, body: String,
     let config = TokenConfiguration(token)
     let octokit = Octokit(config)
     
-    octokit.postIssue(owner: owner, repository: repo, title: title, body: body, completion: { error in
-        return
-    })
+    octokit.postIssue(owner: owner, repository: repo, title: title, body: body) { result in
+        switch result {
+        case .success(let issue):
+            print("Issue created: \(issue)")
+        case .failure(let error):
+            print("Error: \(error)")
+        }
+    }
 }
