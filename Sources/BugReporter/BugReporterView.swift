@@ -52,7 +52,7 @@ struct GitHubIssue: Codable {
 }
 
 func createGitHubIssue(owner: String, repo: String, issue: GitHubIssue) {
-    let urlString = "https://bugreporter-tau.vercel.app/\(owner)/\(repo)"
+    let urlString = "https://bugreporter-tau.vercel.app/issue/\(owner)/\(repo)"
     guard let url = URL(string: urlString) else {
         return
     }
