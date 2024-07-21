@@ -52,8 +52,9 @@ struct GitHubIssue: Codable {
 }
 
 func createGitHubIssue(owner: String, repo: String, issue: GitHubIssue) {
-    let urlString = "https://bugreporter-tau.vercel.app/issue/\(owner)/\(repo)"
+    let urlString = "https://ios-bugreporter.onrender.com/issue/\(owner)/\(repo)"
     guard let url = URL(string: urlString) else {
+        print("Invalid URL")
         return
     }
     
@@ -64,24 +65,36 @@ func createGitHubIssue(owner: String, repo: String, issue: GitHubIssue) {
     do {
         let jsonData = try JSONEncoder().encode(issue)
         request.httpBody = jsonData
+        
+        print("Attempting to create issue at URL: \(urlString)")
+        print("Request body: \(String(data: jsonData, encoding: .utf8) ?? "")")
+        
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            if let error = error {
+                print("Error: \(error.localizedDescription)")
+                return
+            }
+            
+            guard let httpResponse = response as? HTTPURLResponse else {
+                print("Invalid response")
+                return
+            }
+            
+            print("Response status code: \(httpResponse.statusCode)")
+            
+            if (200...299).contains(httpResponse.statusCode) {
+                print("Issue created successfully")
+                if let data = data, let responseString = String(data: data, encoding: .utf8) {
+                    print("Response body: \(responseString)")
+                }
+            } else {
+                print("Error creating issue. Status code: \(httpResponse.statusCode)")
+                if let data = data, let responseString = String(data: data, encoding: .utf8) {
+                    print("Error response: \(responseString)")
+                }
+            }
+        }.resume()
     } catch {
-        return
+        print("Error encoding issue: \(error.localizedDescription)")
     }
-    
-    URLSession.shared.dataTask(with: request) { data, response, error in
-        if let error = error {
-            print(error)
-            return
-        }
-        
-        guard let httpResponse = response as? HTTPURLResponse else {
-            return
-        }
-        
-        if (200...299).contains(httpResponse.statusCode) {
-        } else {
-            let error = NSError(domain: "HTTPError", code: httpResponse.statusCode, userInfo: nil)
-            print(error)
-        }
-    }.resume()
 }
