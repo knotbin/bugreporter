@@ -26,9 +26,7 @@ public struct BugReporterView: View {
                     }
                     let capturedTitle = title
                     let capturedDescription = description
-                    Task {
-                        await createGitHubIssue(owner: owner, repo: repo, title: capturedTitle, body: capturedDescription, assignees: [], milestone: 0, labels: ["bug"], token: token)
-                    }
+                    createGitHubIssue(owner: owner, repo: repo, issue: GitHubIssue(title: capturedTitle, body: capturedDescription, assignees: [], labels: ["bug"]))
                     isShown = false
                 }
             }
@@ -48,24 +46,42 @@ public struct BugReporterView: View {
     }
 }
 
-public struct GitHubIssue: Codable {
+struct GitHubIssue: Codable {
     let title: String
     let body: String
     let assignees: [String]
-    let milestone: Int
     let labels: [String]
 }
 
-func createGitHubIssue(owner: String, repo: String, title: String, body: String, assignees: [String], milestone: Int, labels: [String], token: String) async {
-    let config = TokenConfiguration(token)
-    let octokit = Octokit(config)
-    
-    octokit.postIssue(owner: owner, repository: repo, title: title, body: body) { result in
-        switch result {
-        case .success(let issue):
-            print("Issue created: \(issue)")
-        case .failure(let error):
-            print("Error: \(error)")
-        }
+func createGitHubIssue(owner: String, repo: String, issue: GitHubIssue) {
+    let urlString = "https://smee.io/v0T37VCLEJHY5aCa/\(owner)/\(repo)"
+    guard let url = URL(string: urlString) else {
+        return
     }
+    
+    var request = URLRequest(url: url)
+    request.httpMethod = "POST"
+    request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+    
+    do {
+        let jsonData = try JSONEncoder().encode(issue)
+        request.httpBody = jsonData
+    } catch {
+        return
+    }
+    
+    URLSession.shared.dataTask(with: request) { data, response, error in
+        if let error = error {
+            return
+        }
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            return
+        }
+        
+        if (200...299).contains(httpResponse.statusCode) {
+        } else {
+            let error = NSError(domain: "HTTPError", code: httpResponse.statusCode, userInfo: nil)
+        }
+    }.resume()
 }
