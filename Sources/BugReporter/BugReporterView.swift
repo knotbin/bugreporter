@@ -24,7 +24,7 @@ public struct BugReporterView: View {
                     }
                     let capturedTitle = title
                     let capturedDescription = description
-                    createGitHubIssue(owner: owner, repo: repo, issue: GitHubIssue(title: capturedTitle, body: capturedDescription, assignees: [], labels: ["bug"]))
+                    reportBug(bugReport: BugReport(title: capturedTitle, body: capturedDescription, owner: owner, repo: repo))
                     isShown = false
                 }
             }
@@ -44,17 +44,17 @@ public struct BugReporterView: View {
     }
 }
 
-struct GitHubIssue: Codable {
+struct BugReport: Codable {
     let title: String
     let body: String
-    let assignees: [String]
-    let labels: [String]
+    let owner: String
+    let repo: String
 }
 
-func createGitHubIssue(owner: String, repo: String, issue: GitHubIssue) {
-    let urlString = "https://ios-bugreporter.onrender.com/issue/\(owner)/\(repo)"
+func reportBug(bugReport: BugReport) {
+    let urlString = "https://ios-bugreporter.onrender.com/issue/new-bug"
     guard let url = URL(string: urlString) else {
-        print("Invalid URL")
+        print(NSError(domain: "InvalidURL", code: 0, userInfo: nil))
         return
     }
     
@@ -63,7 +63,7 @@ func createGitHubIssue(owner: String, repo: String, issue: GitHubIssue) {
     request.addValue("application/json", forHTTPHeaderField: "Content-Type")
     
     do {
-        let jsonData = try JSONEncoder().encode(issue)
+        let jsonData = try JSONEncoder().encode(bugReport)
         request.httpBody = jsonData
         
         print("Attempting to create issue at URL: \(urlString)")
@@ -71,30 +71,31 @@ func createGitHubIssue(owner: String, repo: String, issue: GitHubIssue) {
         
         URLSession.shared.dataTask(with: request) { data, response, error in
             if let error = error {
-                print("Error: \(error.localizedDescription)")
+                print(error)
                 return
             }
             
             guard let httpResponse = response as? HTTPURLResponse else {
-                print("Invalid response")
+                print(NSError(domain: "InvalidResponse", code: 0, userInfo: nil))
                 return
             }
             
             print("Response status code: \(httpResponse.statusCode)")
             
             if (200...299).contains(httpResponse.statusCode) {
-                print("Issue created successfully")
-                if let data = data, let responseString = String(data: data, encoding: .utf8) {
-                    print("Response body: \(responseString)")
+                if let data = data {
+                    print(data)
+                } else {
+                    print(NSError(domain: "NoData", code: 0, userInfo: nil))
                 }
             } else {
-                print("Error creating issue. Status code: \(httpResponse.statusCode)")
                 if let data = data, let responseString = String(data: data, encoding: .utf8) {
                     print("Error response: \(responseString)")
                 }
+                print(NSError(domain: "HTTPError", code: httpResponse.statusCode, userInfo: nil))
             }
         }.resume()
     } catch {
-        print("Error encoding issue: \(error.localizedDescription)")
+        print(error)
     }
 }
