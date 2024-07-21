@@ -7,8 +7,6 @@ public struct BugReporterView: View {
     @State var description = ""
     
     @Binding var isShown: Bool
-    
-    let ghToken = Bundle.main.infoDictionary?["GitHubToken"] as? String
     let ghOwner = Bundle.main.infoDictionary?["GitHubOwner"] as? String
     let ghRepo = Bundle.main.infoDictionary?["GitHubRepo"] as? String
     
@@ -20,7 +18,7 @@ public struct BugReporterView: View {
                 TextField("Bug Title", text: $title)
                 TextField("Bug Description", text: $description)
                 Button("Submit") {
-                    guard let token = ghToken, let owner = ghOwner, let repo = ghRepo else {
+                    guard let owner = ghOwner, let repo = ghRepo else {
                         print("Info values not configured correctly")
                         return
                     }
@@ -54,7 +52,7 @@ struct GitHubIssue: Codable {
 }
 
 func createGitHubIssue(owner: String, repo: String, issue: GitHubIssue) {
-    let urlString = "https://smee.io/v0T37VCLEJHY5aCa/\(owner)/\(repo)"
+    let urlString = "https://bugreporter-tau.vercel.app/\(owner)/\(repo)"
     guard let url = URL(string: urlString) else {
         return
     }
@@ -72,6 +70,7 @@ func createGitHubIssue(owner: String, repo: String, issue: GitHubIssue) {
     
     URLSession.shared.dataTask(with: request) { data, response, error in
         if let error = error {
+            print(error)
             return
         }
         
@@ -82,6 +81,7 @@ func createGitHubIssue(owner: String, repo: String, issue: GitHubIssue) {
         if (200...299).contains(httpResponse.statusCode) {
         } else {
             let error = NSError(domain: "HTTPError", code: httpResponse.statusCode, userInfo: nil)
+            print(error)
         }
     }.resume()
 }
