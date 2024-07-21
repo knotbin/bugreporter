@@ -6,6 +6,8 @@ public struct BugReporterView: View {
     @State var title = ""
     @State var description = ""
     
+    @Binding var isShown: Bool
+    
     let ghToken = Bundle.main.infoDictionary?["GitHubToken"] as? String
     let ghOwner = Bundle.main.infoDictionary?["GitHubOwner"] as? String
     let ghRepo = Bundle.main.infoDictionary?["GitHubRepo"] as? String
@@ -27,13 +29,23 @@ public struct BugReporterView: View {
                     Task {
                         await createGitHubIssue(owner: owner, repo: repo, title: capturedTitle, body: capturedDescription, assignees: [], milestone: 0, labels: ["bug"], token: token)
                     }
+                    isShown = false
                 }
             }
             .navigationTitle("Report A Bug")
+            .toolbar {
+                ToolbarItem {
+                    Button("Cancel") {
+                        isShown = false
+                    }
+                }
+            }
         }
     }
     
-    public init() {}
+    public init(isShown: Binding<Bool>) {
+        self._isShown = isShown
+    }
 }
 
 public struct GitHubIssue: Codable {
