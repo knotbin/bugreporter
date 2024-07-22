@@ -54,7 +54,7 @@ struct BugReport {
 }
 
 func reportBug(bugReport: BugReport) {
-    var urlComponents = URLComponents(string: "https://ios-bugreporter.onrender.com/issue/new-bug")
+    var urlComponents = URLComponents(string: "https://ios-bugreporter.onrender.com/issue/new")
     
     // Add query parameters
     urlComponents?.queryItems = [
