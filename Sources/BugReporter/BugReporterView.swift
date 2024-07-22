@@ -49,8 +49,8 @@ struct BugReport {
     let body: String
     let owner: String
     let repo: String
-    let assignees: [String]?
-    let labels: [String]?
+    let assignees: [String]? = nil
+    let labels: [String]? = nil
 }
 
 func reportBug(bugReport: BugReport) {
@@ -100,12 +100,12 @@ func reportBug(bugReport: BugReport) {
             print(responseString)
             
             if (200...299).contains(httpResponse.statusCode) {
-                completion(.success(responseString))
+                print("Success: \(responseString)")
             } else {
-                completion(.failure(NSError(domain: "HTTPError", code: httpResponse.statusCode, userInfo: ["response": responseString])))
+                print(NSError(domain: "HTTPError", code: httpResponse.statusCode, userInfo: ["response": responseString]))
             }
         } else {
-            completion(.failure(NSError(domain: "NoData", code: 0, userInfo: nil)))
+            print(NSError(domain: "NoData", code: 0, userInfo: nil))
         }
     }.resume()
 }
