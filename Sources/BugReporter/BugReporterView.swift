@@ -44,58 +44,68 @@ public struct BugReporterView: View {
     }
 }
 
-struct BugReport: Codable {
+struct BugReport {
     let title: String
     let body: String
     let owner: String
     let repo: String
+    let assignees: [String]?
+    let labels: [String]?
 }
 
 func reportBug(bugReport: BugReport) {
-    let urlString = "https://ios-bugreporter.onrender.com/issue/new-bug"
-    guard let url = URL(string: urlString) else {
+    var urlComponents = URLComponents(string: "https://ios-bugreporter.onrender.com/issue/new-bug")
+    
+    // Add query parameters
+    urlComponents?.queryItems = [
+        URLQueryItem(name: "owner", value: bugReport.owner),
+        URLQueryItem(name: "repo", value: bugReport.repo),
+        URLQueryItem(name: "title", value: bugReport.title),
+        URLQueryItem(name: "body", value: bugReport.body)
+    ]
+    
+    // Add optional parameters if they exist
+    if let assignees = bugReport.assignees, !assignees.isEmpty {
+        urlComponents?.queryItems?.append(URLQueryItem(name: "assignees", value: assignees.joined(separator: ",")))
+    }
+    if let labels = bugReport.labels, !labels.isEmpty {
+        urlComponents?.queryItems?.append(URLQueryItem(name: "labels", value: labels.joined(separator: ",")))
+    }
+    
+    guard let url = urlComponents?.url else {
         print(NSError(domain: "InvalidURL", code: 0, userInfo: nil))
         return
     }
     
     var request = URLRequest(url: url)
     request.httpMethod = "POST"
-    request.addValue("application/json", forHTTPHeaderField: "Content-Type")
     
-    do {
-        let jsonData = try JSONEncoder().encode(bugReport)
-        request.httpBody = jsonData
+    print("Attempting to create issue at URL: \(url.absoluteString)")
+    
+    URLSession.shared.dataTask(with: request) { data, response, error in
+        if let error = error {
+            print(error)
+            return
+        }
         
-        print("Attempting to create issue at URL: \(urlString)")
-        print("Request body: \(String(data: jsonData, encoding: .utf8) ?? "")")
+        guard let httpResponse = response as? HTTPURLResponse else {
+            print(NSError(domain: "InvalidResponse", code: 0, userInfo: nil))
+            return
+        }
         
-        URLSession.shared.dataTask(with: request) { data, response, error in
-            if let error = error {
-                print(error)
-                return
-            }
-            
-            guard let httpResponse = response as? HTTPURLResponse else {
-                print(NSError(domain: "InvalidResponse", code: 0, userInfo: nil))
-                return
-            }
-            
-            print("Response status code: \(httpResponse.statusCode)")
+        print("Response status code: \(httpResponse.statusCode)")
+        
+        if let data = data, let responseString = String(data: data, encoding: .utf8) {
+            print("Full response:")
+            print(responseString)
             
             if (200...299).contains(httpResponse.statusCode) {
-                if let data = data {
-                    print(data)
-                } else {
-                    print(NSError(domain: "NoData", code: 0, userInfo: nil))
-                }
+                completion(.success(responseString))
             } else {
-                if let data = data, let responseString = String(data: data, encoding: .utf8) {
-                    print("Error response: \(responseString)")
-                }
-                print(NSError(domain: "HTTPError", code: httpResponse.statusCode, userInfo: nil))
+                completion(.failure(NSError(domain: "HTTPError", code: httpResponse.statusCode, userInfo: ["response": responseString])))
             }
-        }.resume()
-    } catch {
-        print(error)
-    }
+        } else {
+            completion(.failure(NSError(domain: "NoData", code: 0, userInfo: nil)))
+        }
+    }.resume()
 }
